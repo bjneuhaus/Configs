@@ -16,7 +16,7 @@ projects:
   - name: self
     git:
       remotes:
-        origin: https://gitea.homelab.local:30008/bjoern/developmentenvironment.git
+        origin: https://github.com/bjneuhaus/Configs.git
 
 commands:
   - id: enable-cluster-ca
