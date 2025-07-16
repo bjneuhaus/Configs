@@ -1,0 +1,54 @@
+schemaVersion: 2.2.0
+metadata:
+  name: devspace-with-init-and-trusted-ca
+  description: DevSpaces Umgebung mit Gitea-Zugriff, Zertifikatsvertrauen und Init-Skript
+attributes:
+  controller.devfile.io/storage-type: persistent
+components:
+  - name: python
+    container:
+      image: registry.redhat.io/devspaces/udi-rhel9@sha256:cca6cbf5adcb5ce83392795573fe258d468568bddc3ad3618297e9e6234cfb79
+      memoryLimit: 3Gi
+      mountSources: true
+      command: ["/bin/bash"]
+      args: ["-c", "sleep infinity"]
+projects:
+  - name: self
+    git:
+      remotes:
+        origin: https://gitea.homelab.local:30008/bjoern/developmentenvironment.git
+
+commands:
+  - id: enable-cluster-ca
+    exec:
+      label: "Aktiviere global injiziertes Cluster-CA-Zertifikat"
+      component: python
+      workingDir: /home/user
+      commandLine: |
+        update-ca-trust
+      group:
+        kind: build
+        isDefault: false
+
+  - id: run-init-script
+    exec:
+      label: "Führe benutzerdefiniertes Init-Skript aus (einmalig)"
+      component: python
+      workingDir: /projects/developmentenvironment
+      commandLine: |
+        if [ -f ./dotfiles/init.sh ] && [ ! -f /home/user/.devspace-init-done ]; then
+          echo "▶️ Starte init.sh ..."
+          chmod +x ./dotfiles/init.sh
+          ./dotfiles/init.sh
+          touch /home/user/.devspace-init-done
+        else
+          echo "⏭️ Init-Skript übersprungen (bereits ausgeführt oder nicht gefunden)"
+        fi
+      group:
+        kind: build
+        isDefault: true
+
+events:
+  postStart:
+    - enable-cluster-ca
+    - run-init-script
